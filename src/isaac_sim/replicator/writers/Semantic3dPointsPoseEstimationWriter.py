@@ -171,7 +171,6 @@ class Semantic3dPointPoseEstimationWriter(rep.Writer):
 		Generates a YOLO pose format annotation file.
 		<class_id> <bbox_x_norm> <bbox_y_norm> <bbox_w_norm> <bbox_h_norm> <sem_1_x_norm> <sem_1_y_norm> <vis_1> ...
 		"""
-		# Bounding Box Calculation
 		x_min = np.min(corners_2d_pixels[:, 0])
 		y_min = np.min(corners_2d_pixels[:, 1])
 		x_max = np.max(corners_2d_pixels[:, 0])
@@ -182,14 +181,14 @@ class Semantic3dPointPoseEstimationWriter(rep.Writer):
 		bbox_width = x_max - x_min
 		bbox_height = y_max - y_min
 
-		# Normalize bounding box coordinates
+		bbox_center_y = height - bbox_center_y
+		
 		bbox_center_x_norm = bbox_center_x / width
 		bbox_center_y_norm = bbox_center_y / height
 		bbox_width_norm = bbox_width / width
 		bbox_height_norm = bbox_height / height
 
-		# Prepare the YOLO line string
-		yolo_line = f"0 {bbox_center_x_norm:.6f} {bbox_center_y_norm:.6f} {bbox_width_norm:.6f} {bbox_height_norm:.6f}"
+		yolo_line = f"0\t{bbox_center_x_norm:.6f}\t{bbox_center_y_norm:.6f}\t{bbox_width_norm:.6f}\t{bbox_height_norm:.6f}"
 		
 		for point in semantic_points:
 			x_norm = 0.0
@@ -198,12 +197,11 @@ class Semantic3dPointPoseEstimationWriter(rep.Writer):
 			
 			if not point["is_occluded"]:
 				x_norm = point["point_2d_pixels"][0] / width
-				y_norm = point["point_2d_pixels"][1] / height
+				y_norm = (height - point["point_2d_pixels"][1]) / height
 				visibility = 1
 			
-			yolo_line += f" {x_norm:.6f} {y_norm:.6f} {visibility}"
+			yolo_line += f"\t{x_norm:.6f}\t{y_norm:.6f}\t{visibility}"
 		
-		# Write to file
 		file_path = f"{self.frame_id}.txt"
 		self.backend.write_blob(file_path, yolo_line.encode())
 
