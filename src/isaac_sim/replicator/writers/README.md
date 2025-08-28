@@ -10,7 +10,7 @@ This guide explains how to use the custom **Semantic3dPointPoseEstimationWriter*
 
 Before defining your semantic points, you need to prepare the 3D bounding box information for your target object.
 
-1.  **Import** your target object's USD (e.g., forklift) into Isaac Sim.
+1.  **Import** your target object's USD (e.g., forklift) into Isaac Sim. Don't forget to add the semantic via Semantic Schema Editor panel. (click the target prim in the stage panel and click Add Entries On All Selected Prim in Semantic Schema Editor)
 2.  Use the **Synthetic Data Recorder** to export the object's **`3d_bbox`** and **`camera_params`**.
 3.  Run the **`visualize3dbbox.py`** script (located in `src/isaac_sim/external_scirpts/`) and specify the output directory from the previous step and the target prim.
 4.  The script will generate a plot that shows the specific corner order of the 3D bounding box. You'll need this order later.
@@ -38,6 +38,7 @@ This part of the process uses Blender to define the semantic points on your 3D m
 
 The final step is to use the generated JSON file and the custom writer to create your dataset in Isaac Sim.
 
+0   **Important** Make sure the target object didn't move, rotate from external force while playing simulation, or safely disable its physics attribute. OTHERWIESE the 3d bbox corner orders might be inconsistent.
 1.  Copy the code from **`Semantic3dPointPoseEstimationWriter.py`** into Isaac Sim's Script Editor.
 2.  In the writer class, specify the path to the JSON file you just created.
 3.  Adjust any necessary parameters, such as the target prim path, raycast threshold, or Replicator camera prim path.
