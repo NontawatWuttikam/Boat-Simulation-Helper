@@ -78,6 +78,16 @@ This is the final step: using the generated **JSON file** and the custom writer 
 
 ---
 
+### 🎥 Model Setup
+
+To create a model with a **random pose** at each frame:  
+
+1. 🌀 Use the script: **`snippets/randomUSDPoseReplicator.py`**  
+2. 📂 Update the **USD path** to point to your target object.  
+3. 🏷️ Change the **semantic label** to match your object name.  
+4. ▶️ Run the script to **spawn the object** with random poses.  
+
+
 ### 🚀 Steps in Isaac Sim
 
 1. 📜 Copy the code from **`Semantic3dPointPoseEstimationWriter.py`** into Isaac Sim’s **Script Editor**.  
