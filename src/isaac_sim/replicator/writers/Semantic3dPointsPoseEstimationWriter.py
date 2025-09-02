@@ -74,19 +74,20 @@ def estimate_transform_3d(source_points, target_points):
     return R, t
 
 class Semantic3dPointPoseEstimationWriter(rep.Writer):
-    def __init__(self, output_dir: str, target_prim: str = "/Replicator/Ref_Xform/Ref", semantic_json_path: str = "/home/user/isaac_save/3d_model_semantic/forklift_c.json"):
+    def __init__(self, output_dir: str, target_prim: str = "/Replicator/Ref_Xform/Ref", semantic_json_path: str = "/home/user/isaac_save/3d_model_semantic/forklift_c.json", save_debug_interval: int = 1):
         """
         Initializes the writer for semantic 3D point pose estimation.
         """
         self.frame_id = 0
         self.backend = rep.BackendDispatch({"paths": {"out_dir": output_dir}})
         self.annotators = ["bounding_box_3d", "rgb", "camera_params"]
-        self.raycast_distance_threshold = 0.1
+        self.raycast_distance_threshold = 0.3
         self.target_prim = target_prim
         self.debug_output_dir = os.path.join(output_dir, "debug")
         os.makedirs(self.debug_output_dir, exist_ok=True)
         with open(semantic_json_path, "r") as f:
             self.semantic_data = json.load(f)
+        self.save_debug_interval = save_debug_interval
 
     def write(self, data):
         """
@@ -161,17 +162,17 @@ class Semantic3dPointPoseEstimationWriter(rep.Writer):
 
         for i, point_2d_pixels in enumerate(sem_2d_pixels):
             print(f"\n--- Raycast check for semantic point {i} ({sem_name[i]}) ---")
-            print(f"   World position: {np.round(sem_world[i], 4)}")
-            print(f"   Projected pixel (before occlusion check): {np.round(point_2d_pixels, 2)}")
+            print(f"    World position: {np.round(sem_world[i], 4)}")
+            print(f"    Projected pixel (before occlusion check): {np.round(point_2d_pixels, 2)}")
 
             is_occluded = False
             ray_dir = sem_world[i] - camera_origin
             ray_dir_normalized = ray_dir / np.linalg.norm(ray_dir)
             dist_to_sem_point = np.linalg.norm(sem_world[i] - camera_origin)
 
-            print(f"   Camera origin: {np.round(camera_origin, 4)}")
-            print(f"   Ray direction (normalized): {np.round(ray_dir_normalized, 6)}")
-            print(f"   Distance to semantic point: {dist_to_sem_point:.4f}")
+            print(f"    Camera origin: {np.round(camera_origin, 4)}")
+            print(f"    Ray direction (normalized): {np.round(ray_dir_normalized, 6)}")
+            print(f"    Distance to semantic point: {dist_to_sem_point:.4f}")
 
             for _ in range(1):
                 hit = scene_query.raycast_closest(
@@ -183,34 +184,35 @@ class Semantic3dPointPoseEstimationWriter(rep.Writer):
             if hit:
                 hit_pos_3d = hit['position']
                 hit_distance = hit['distance']
-                print(f"   [Hit] Position: {np.round(hit_pos_3d, 4)}, Distance: {hit_distance:.4f}")
+                print(f"    [Hit] Position: {np.round(hit_pos_3d, 4)}, Distance: {hit_distance:.4f}")
 
                 hit_pos_2d = world_to_image_pinhole(np.array([hit_pos_3d]), data["camera_params"])
                 hit_pos_2d *= np.array([[width, height]])
-                print(f"   [Hit] Projected to pixel: {np.round(hit_pos_2d[0], 2)}")
+                print(f"    [Hit] Projected to pixel: {np.round(hit_pos_2d[0], 2)}")
 
                 hit_points_2d.append(hit_pos_2d[0])
                 hit_labels.append(sem_name[i])
 
                 if hit_distance < dist_to_sem_point - self.raycast_distance_threshold:
                     is_occluded = True
-                    print(f"   --> Marked as OCCLUDED (hit distance {hit_distance:.4f} < semantic distance {dist_to_sem_point:.4f})")
+                    print(f"    --> Marked as OCCLUDED (hit distance {hit_distance:.4f} < semantic distance {dist_to_sem_point:.4f})")
                 else:
-                    print(f"   --> Marked as VISIBLE (semantic point is first hit)")
+                    print(f"    --> Marked as VISIBLE (semantic point is first hit)")
 
             else:
-                print("   [No Hit] Raycast did not hit any object.")
-                print("   --> Marked as VISIBLE (no occluder found)")
+                print("    [No Hit] Raycast did not hit any object.")
+                print("    --> Marked as VISIBLE (no occluder found)")
 
             all_semantic_points.append({
                 "point_2d_pixels": point_2d_pixels,
                 "label": sem_name[i],
                 "is_occluded": is_occluded
             })
-            print(f"   Final occlusion status for {sem_name[i]}: {is_occluded}")
+            print(f"    Final occlusion status for {sem_name[i]}: {is_occluded}")
             print("--- End of raycast check ---\n")
 
-        if self.frame_id < 14:
+        # Save debug images for the first 10 frames and then every `self.save_debug_interval` frames
+        if self.frame_id < 10 or self.frame_id % self.save_debug_interval == 0:
             visible_points_2d = [p["point_2d_pixels"] for p in all_semantic_points if not p["is_occluded"]]
             visible_labels = [p["label"] for p in all_semantic_points if not p["is_occluded"]]
             occluded_points_2d = [p["point_2d_pixels"] for p in all_semantic_points if p["is_occluded"]]
