@@ -251,7 +251,6 @@ class Semantic3dPointPoseEstimationWriter(rep.Writer):
 
         bbox_center_x_norm = bbox_center_x / width
         bbox_center_y_norm = bbox_center_y / height
-        bbox_center_y_norm = 1.0 - bbox_center_y_norm  # Flip Y for YOLO format
         bbox_width_norm = bbox_width / width
         bbox_height_norm = bbox_height / height
 
@@ -265,7 +264,6 @@ class Semantic3dPointPoseEstimationWriter(rep.Writer):
             if not point["is_occluded"]:
                 x_norm = point["point_2d_pixels"][0] / width
                 y_norm = point["point_2d_pixels"][1] / height
-                y_norm = 1.0 - y_norm  # Flip Y for YOLO format
                 visibility = 1
             
             yolo_line += f" {x_norm:.6f} {y_norm:.6f} {visibility}"
